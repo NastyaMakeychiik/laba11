@@ -1,43 +1,143 @@
-package com.topic3.android.reddit.domain.model
+package com.topic3.android.reddit.screens
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.topic3.android.reddit.R
+import com.topic3.android.reddit.domain.model.PostModel
+import com.topic3.android.reddit.routing.RedditRouter
+import com.topic3.android.reddit.routing.Screen
+import com.topic3.android.reddit.viewmodel.MainViewModel
 
-data class PostModel(
-    val username: String,
-    val subreddit: String,
-    val title: String,
-    val text: String,
-    val likes: String,
-    val comments: String,
-    val type: PostType,
-    val postedTime: String,
-    val image: Int?
-) {
+@Composable
+fun AddScreen(viewModel: MainViewModel) {
 
-    companion object {
+    val selectedCommunity: String by viewModel.selectedCommunity.observeAsState("")
 
-        val DEFAULT_POST = PostModel(
-            "raywenderlich",
-            "androiddev",
-            "Watch this awesome Jetpack Compose course!",
-            "",
-            "5614",
-            "523",
-            PostType.IMAGE,
-            "4h",
-            R.drawable.compose_course
+    var post by remember { mutableStateOf(PostModel.EMPTY) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+
+        CommunityPicker(selectedCommunity)
+
+        TitleTextField(post.title) { newTitle -> post = post.copy(title = newTitle) }
+
+        BodyTextField(post.text) { newContent -> post = post.copy(text = newContent) }
+
+        AddPostButton(selectedCommunity.isNotEmpty() && post.title.isNotEmpty()) {
+            viewModel.savePost(post)
+            RedditRouter.navigateTo(com.topic3.android.reddit.routing.Screen.Home)
+        }
+    }
+}
+
+/**
+ * Input view for the post title
+ */
+@Composable
+private fun TitleTextField(text: String, onTextChange: (String) -> Unit) {
+    val activeColor = MaterialTheme.colors.onSurface
+
+    TextField(
+        value = text,
+        onValueChange = onTextChange,
+        label = { Text(stringResource(R.string.title)) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        colors = TextFieldDefaults.outlinedTextFieldColors(
+            focusedBorderColor = activeColor,
+            focusedLabelColor = activeColor,
+            cursorColor = activeColor,
+            backgroundColor = MaterialTheme.colors.surface
+        )
+    )
+}
+
+/**
+ * Input view for the post body
+ */
+@Composable
+private fun BodyTextField(text: String, onTextChange: (String) -> Unit) {
+    val activeColor = MaterialTheme.colors.onSurface
+
+    TextField(
+        value = text,
+        onValueChange = onTextChange,
+        label = { Text(stringResource(R.string.body_text)) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 240.dp)
+            .padding(horizontal = 8.dp)
+            .padding(top = 16.dp),
+        colors = TextFieldDefaults.outlinedTextFieldColors(
+            focusedBorderColor = activeColor,
+            focusedLabelColor = activeColor,
+            cursorColor = activeColor,
+            backgroundColor = MaterialTheme.colors.surface
+        )
+    )
+}
+
+/**
+ * Input view for the post body
+ */
+@Composable
+private fun AddPostButton(isEnabled: Boolean, onSaveClicked: () -> Unit) {
+    Button(
+        onClick = onSaveClicked,
+        enabled = isEnabled,
+        content = {
+            Text(
+                text = stringResource(R.string.save_post),
+                color = MaterialTheme.colors.onSurface
+            )
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 240.dp)
+            .padding(horizontal = 8.dp)
+            .padding(top = 16.dp),
+    )
+}
+
+@Composable
+private fun CommunityPicker(selectedCommunity: String) {
+
+    val selectedText =
+        if (selectedCommunity.isEmpty()) stringResource(R.string.choose_community) else selectedCommunity
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 240.dp)
+            .padding(horizontal = 8.dp)
+            .padding(top = 16.dp)
+            .clickable {
+                RedditRouter.navigateTo(Screen.ChooseCommunity)
+            },
+    ) {
+        Image(
+            bitmap = ImageBitmap.imageResource(id = R.drawable.subreddit_placeholder),
+            contentDescription = stringResource(id = R.string.subreddits),
+            modifier = Modifier
+                .size(24.dp)
+                .clip(CircleShape)
         )
 
-        val EMPTY = PostModel(
-            "raywenderlich",
-            "raywenderlich.com",
-            "",
-            "",
-            "0",
-            "0",
-            PostType.TEXT,
-            "0h",
-            R.drawable.compose_course
+        Text(
+            text = selectedText,
+            modifier = Modifier.padding(start = 8.dp)
         )
     }
 }
